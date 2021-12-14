@@ -1,53 +1,70 @@
-const colors = require("colors/safe");
-let [startPoint, endPoint] = process.argv.slice(2);
+///////МОЙ ВАРИАНТ РЕШЕНИЯ (ПРОВЕРЕН НА БОЛЬШОМ ФАЙЛЕ весом 2Гб)
 
-function getPrimeNumber(a, n) {
-	let res = [];
-	if (a > n) {
-		console.log(colors.magenta("Упс! Неверно указан диапазон! Попробуйте еще раз!"));
-		return;
-	}
-	if (n <= 1) {
-		console.log(colors.red("Упс! В указанном диапазоне нет простых чисел! Попробуйте указать другой диапазон!"));
-		return;
-	}
+const fs = require('fs');
 
-	if (((a && n) instanceof Number || typeof (a && n) === 'number') && !isNaN(a && n)) {
-		nextPrime: for (let i = a; i <= n; i++) {
-			if (i <= 1) continue nextPrime;
-			for (let j = 2; j < i; j++) {
-				if (i % j === 0) {
-					continue nextPrime;
-				}
-			}
-			res.push(i);
-		}
-	} else {
-		console.log(colors.magenta("Упс! Неверно указан диапазон! Укажите числом значения диапазона!"));
-		return;
-	}
+const readStream = fs.createReadStream('./access.log', 'utf8');
+const writeStream1 = fs.createWriteStream('./89.123.1.41_requests.log');
+const writeStream2 = fs.createWriteStream('./34.48.240.111_requests.log');
 
-	if (Array.isArray(res) && res.length) {
-		getSplitArray(res);
-	} else {
-		console.log(colors.red("В указанном диапазоне нет простых чисел! Укажите значение диапазона числом начиная от цифры 2!"));
-	}
-}
+const {
+	Transform
+} = require('stream');
 
-function getSplitArray(arr) {
-	let splitArr = [];
-	for (var i = 0; i < arr.length; i = i + 3) {
-		let partOfArr = [];
-		partOfArr.push(colors.green(arr[i]));
-		if (typeof arr[i + 1] !== 'undefined') {
-			partOfArr.push(colors.yellow(arr[i + 1]));
-		}
-		if (typeof arr[i + 2] !== 'undefined') {
-			partOfArr.push(colors.red(arr[i + 2]));
-		}
-		splitArr.push(partOfArr);
-	}
-	console.log(splitArr.toString());
-}
+const transformStream1 = new Transform({
+	transform(chunk, encoding, callback) {
+		const transformedChunk = chunk.toString();
 
-getPrimeNumber(Number(startPoint), Number(endPoint));
+		let reg = new RegExp(`^.*(89.123.1.41).*$`, 'gm');
+		let result = transformedChunk.match(reg);
+
+		result.forEach(element => {
+			this.push(element + "\n");
+		});
+		callback();
+	}
+});
+const transformStream2 = new Transform({
+	transform(chunk, encoding, callback) {
+		const transformedChunk = chunk.toString();
+
+		let reg = new RegExp(`^.*(34.48.240.111).*$`, 'gm');
+		let result = transformedChunk.match(reg);
+
+		result.forEach(element => {
+			this.push(element + "\n");
+		});
+		callback();
+	}
+});
+readStream.pipe(transformStream1).pipe(writeStream1);
+readStream.pipe(transformStream2).pipe(writeStream2);
+
+
+///////ОПТИМАЛЬНОЕ РЕШЕНИЕ
+
+// const fs = require('fs')
+// const readline = require('readline')
+
+// const readStream = fs.createReadStream('./access.log', 'utf8')
+// const writeStream1 = fs.createWriteStream('./89.123.1.41_requests.log')
+// const writeStream2 = fs.createWriteStream('./34.48.240.111_requests.log')
+
+// let numStr = 0
+
+// const rl = readline.createInterface({
+// 	input: readStream,
+// 	terminal: true
+// });
+
+// rl.on('line', (line) => {
+// 	// сделать получение ip из строки и проверку через includes
+// 	if (line.includes("89.123.1.41")) {
+// 		writeStream1.write(line + "\n")
+// 	}
+
+// 	if (line.includes("34.48.240.111")) {
+// 		writeStream2.write(line + "\n")
+// 	}
+
+// 	console.log(++numStr)
+// })
